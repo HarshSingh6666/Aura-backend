@@ -76,22 +76,25 @@ mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/Aura-chat')
 let otpStore = {}; 
 
 // 🔥 Brevo SMTP Configuration
+// 🔥 UPDATED TRANSPORTER (IPv6 Disable Fix)
 const transporter = nodemailer.createTransport({
-    host: "smtp-relay.brevo.com", // Brevo ka server
-    port: 587,                    // Standard Port
-    secure: false,                // False for 587
+    service: 'gmail', 
+    host: 'smtp.googlemail.com',
+    port: 465,
+    secure: true,
     auth: { 
-        user: process.env.EMAIL_USER, // Brevo Login Email
-        pass: process.env.EMAIL_PASS  // Brevo SMTP Key (Not account password)
-    }
+        user: process.env.EMAIL_USER, 
+        pass: process.env.EMAIL_PASS 
+    },
+    family: 4 // ⚠️ YE HAI MAGIC LINE (Sirf IPv4 use karega)
 });
 
-// Verify Connection
+// Verification Log
 transporter.verify((error, success) => {
     if (error) {
-        console.log("❌ Brevo Connection Error:", error);
+        console.log("❌ Email Service Error:", error);
     } else {
-        console.log("✅ Brevo Email Service Ready");
+        console.log("✅ Email Service Ready (SMTP Connected via IPv4)");
     }
 });
 
