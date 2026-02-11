@@ -27,13 +27,12 @@ const server = http.createServer(app);
 // ================= MIDDLEWARES =================
 app.use(express.json());
 app.use(cors({
-    // Apne frontend ka production URL yahan zaroor add karein
     origin: ["http://localhost:8080", "http://localhost:5173", "http://localhost:3000", "https://your-frontend-url.vercel.app"], 
     credentials: true,
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// ================= FIREBASE SETUP (Robust Fix) =================
+// ================= FIREBASE SETUP =================
 try {
     let serviceAccount;
     let privateKey;
@@ -44,7 +43,6 @@ try {
             ? serviceAccount.private_key.replace(/\\n/g, '\n') 
             : undefined;
     } else {
-        // Local File Fallback
         try {
             serviceAccount = require("./firebase-service-key.json");
             privateKey = serviceAccount.private_key;
@@ -74,29 +72,26 @@ mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/Aura-chat')
   .then(() => console.log("✅ MongoDB Connected"))
   .catch(err => console.log("❌ DB Error:", err));
 
-// ================= EMAIL SETUP (FIXED FOR RENDER) =================
+// ================= EMAIL SETUP (FIXED FOR TIMEOUT) =================
 let otpStore = {}; 
 
-// 🔥 UPDATED TRANSPORTER (Best for Render/Cloud)
+// 🔥 UPDATED TRANSPORTER (PORT 465 - SSL MODE)
 const transporter = nodemailer.createTransport({
     host: "smtp.gmail.com",
-    port: 587,              // ⚠️ 465 ki jagah 587 use karein (Render friendly)
-    secure: false,          // 587 ke liye ye false hota hai (ye insecure nahi hai, ye STARTTLS hai)
+    port: 465,              // ⚠️ Changed to 465 (Fixes Timeout)
+    secure: true,           // ⚠️ Must be true for 465
     auth: { 
         user: process.env.EMAIL_USER, 
-        pass: process.env.EMAIL_PASS // 16-Digit App Password
-    },
-    tls: {
-        rejectUnauthorized: false // ⚠️ Render par SSL error rokne ke liye
+        pass: process.env.EMAIL_PASS 
     }
 });
 
 // Server Start hone par Email Connection Check karein
 transporter.verify((error, success) => {
     if (error) {
-        console.log("❌ Email Service Error:", error);
+        console.log("❌ Email Service Error (Detailed):", error);
     } else {
-        console.log("✅ Email Service Ready (SMTP Connected)");
+        console.log("✅ Email Service Ready (SMTP Connected via Port 465)");
     }
 });
 
@@ -157,9 +152,6 @@ app.post('/verify-signup', async (req, res) => {
     try {
         const { username, name, email, password, age, phone, otp } = req.body;
         
-        // Debug Log
-        // console.log(`Verifying: ${email} | Input: ${otp} | Stored: ${otpStore[email]}`);
-
         if (!otpStore[email] || otpStore[email] !== otp) {
             return res.status(400).json({ message: "Invalid or Expired OTP" });
         }
@@ -226,7 +218,6 @@ app.post("/api/upload", upload.single("file"), async (req, res) => {
 const io = new Server(server, {
   pingTimeout: 60000,
   cors: { 
-    // Yahan bhi production URL allow karein
     origin: ["http://localhost:8080", "http://localhost:5173", "http://localhost:3000", "https://your-frontend-url.vercel.app"],
     methods: ["GET", "POST"],
     credentials: true
