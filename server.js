@@ -1,4 +1,4 @@
-require('dotenv').config(); 
+require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -61,7 +61,7 @@ try {
         });
         console.log("🔥 Firebase Admin Initialized Successfully");
     } else {
-        console.log("⚠️ Firebase Warning: Missing Private Key. Notifications won't work.");
+        console.log("⚠️ Firebase Warning: Notifications won't work.");
     }
 } catch (error) {
     console.log("⚠️ Firebase Config Error: " + error.message);
@@ -72,44 +72,34 @@ mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/Aura-chat')
   .then(() => console.log("✅ MongoDB Connected"))
   .catch(err => console.log("❌ DB Error:", err));
 
-// ================= EMAIL SETUP (FIXED FOR TIMEOUT) =================
+// ================= EMAIL SETUP (BREVO SMTP - NO TIMEOUT) =================
 let otpStore = {}; 
 
-// 🔥 UPDATED TRANSPORTER (PORT 465 - SSL MODE)
-// 🔥 UPDATED TRANSPORTER (Connection Timeout Fix)
+// 🔥 Brevo SMTP Configuration
 const transporter = nodemailer.createTransport({
-    service: 'gmail',  // ⚠️ 'service' use karne se Nodemailer automatically best port dhund leta hai
-    host: 'smtp.googlemail.com', // ⚠️ 'gmail.com' ki jagah 'googlemail.com' use karein (Ye network blocks bypass karta hai)
-    port: 465, // Ya 587, service mode ise override kar lega agar zaroorat padi
-    secure: true,
+    host: "smtp-relay.brevo.com", // Brevo ka server
+    port: 587,                    // Standard Port
+    secure: false,                // False for 587
     auth: { 
-        user: process.env.EMAIL_USER, 
-        pass: process.env.EMAIL_PASS 
+        user: process.env.EMAIL_USER, // Brevo Login Email
+        pass: process.env.EMAIL_PASS  // Brevo SMTP Key (Not account password)
     }
 });
 
-// Verification Log
+// Verify Connection
 transporter.verify((error, success) => {
     if (error) {
-        console.log("❌ Email Service Error:", error);
+        console.log("❌ Brevo Connection Error:", error);
     } else {
-        console.log("✅ Email Service Ready (SMTP Connected)");
-    }
-});
-// Server Start hone par Email Connection Check karein
-transporter.verify((error, success) => {
-    if (error) {
-        console.log("❌ Email Service Error (Detailed):", error);
-    } else {
-        console.log("✅ Email Service Ready (SMTP Connected via Port 465)");
+        console.log("✅ Brevo Email Service Ready");
     }
 });
 
 // Helper Function for Email
 const sendOTPEmail = async (email, otp) => {
     const mailOptions = {
-        from: `"Aura App" <${process.env.EMAIL_USER}>`,
-        to: email,
+        from: `"Aura App" <${process.env.EMAIL_USER}>`, // Sender email wahi hona chahiye jo Brevo mein hai
+        to: email, // Ab ye kisi bhi email par jayega
         subject: '🔐 Verify your Aura Account',
         html: `
             <div style="font-family: Arial, sans-serif; padding: 20px; border: 1px solid #ddd; border-radius: 10px;">
